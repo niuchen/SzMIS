@@ -1,0 +1,80 @@
+/*格式化页面*/
+html{
+	scrollbar-face-color: #DDEEFF; /*主色调*/
+	scrollbar-highlight-color: #FFFFFF; 
+	scrollbar-shadow-color: #689ee4; /*描边颜色*/
+	scrollbar-3dlight-color: #689ee4; /*左侧边高光颜色*/
+	scrollbar-arrow-color: #6688AA; /*小三角颜色*/
+	scrollbar-track-color: #cde1fc; 
+	scrollbar-darkshadow-color: #DDEEFF; 
+}
+br{
+	clear:both;
+}
+.height_15{
+		height:35px;
+	}
+body{
+	font-size: 12px;
+	margin: 0;
+	padding: 0;
+	border:0;
+	text-align: left;
+	line-height:150%;
+}
+ul{
+	margin: 0;
+	padding: 0;
+}
+li{
+	margin: 0;
+	padding: 0;
+	list-style-type: none;
+}
+dl{
+	margin: 0;
+	padding: 0;
+}
+dt{
+	margin: 0;
+	padding: 0;
+}
+dd{
+	margin: 0;
+	padding: 0;
+}
+ol{
+	margin: 0;
+	padding: 0;
+}
+img{
+	border: 0;
+}
+form{
+	margin: 0;
+}
+a{
+	cursor:pointer;
+	cursor:hand;
+	color:black;
+	text-decoration:none;
+}
+a:hover{
+	text-decoration:underline;
+}
+/*格式化页面*/
+.api{
+	color:red;
+	text-decoration:underline;
+	font-weight:bold;
+	padding:10px;
+	font-size:14px;
+}
+.api a{
+	color:red;
+	text-decoration:underline;
+}
+legend{
+	font-size:14px;
+	font-weight:bold;
+}

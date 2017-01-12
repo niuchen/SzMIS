@@ -1,0 +1,443 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+   
+<mapper namespace="com.SzMIS.sys.user.dao.IUserLoginDao">
+
+	<!-- 查找系统表模块中的全部模块 -->
+	<select id="sysmoduletree" resultType="com.SzMIS.common.bean.T_MODULES"
+		parameterType="Map">
+		select * from T_MODULES m where 1=1
+		<if test="is_leaf != null">
+			and m.IS_LEAF=#{is_leaf}
+		</if>
+		<if test="i_del_tag != null">
+			and m.I_DEL_TAG=#{i_del_tag}
+		</if>
+		order by m.I_ORDER_ID desc
+	</select>
+	
+		<select id="selectuserseq" resultType="Integer" >
+		select t_users_info_seq.nextval from  dual
+		</select>
+
+	<!-- 查询用户 -->
+	<select id="getuserlogin" resultType="com.SzMIS.common.bean.T_USERS_INFO" 	parameterType="Map">
+		select * from T_USERS_INFO m
+		where 1=1
+			and m.i_delete_state=#{i_delete_state}
+			and m.v_login_name=#{v_login_name}
+			and m.v_login_password=#{v_login_password}
+ 	</select>
+	<!-- 查询用户 -->
+	<select id="selectuser" resultType="com.SzMIS.common.bean.T_USERS_INFO"
+		parameterType="Map">
+	select * from ( select row_.*, rownum rn from (
+		select * from T_USERS_INFO m
+		where 1=1
+		<if test="i_delete_state != null">
+			and m.i_delete_state=#{i_delete_state}
+		</if>
+		<if test="v_login_name != null">
+			and m.v_login_name=#{v_login_name}
+		</if>
+		<if test="v_login_password != null">
+			and m.v_login_password=#{v_login_password}
+		</if>
+ 		order by m.I_USER_ID desc
+  	) row_ where rownum
+ 		<![CDATA[ <= ]]>
+		#{limit} ) where rn
+		<![CDATA[ > ]]>
+		#{start}
+	</select>
+ 		<!-- 查询用户 -->
+	<select id="selectuserCnt" resultType="Integer" 	parameterType="Map">
+		select count(i_user_id) from T_USERS_INFO m
+		where 1=1
+		<if test="i_delete_state != null">
+			and m.i_delete_state=#{i_delete_state}
+		</if>
+		<if test="v_login_name != null">
+			and m.v_login_name=#{v_login_name}
+		</if>
+		<if test="v_login_password != null">
+			and m.v_login_password=#{v_login_password}
+		</if>
+ 	</select>
+ <!-- 查询用户 -->
+	<select id="selectuserwhere" resultType="com.SzMIS.common.bean.T_USERS_INFO"
+		parameterType="Map">
+ 		select * from T_USERS_INFO m
+		where 1=1
+		<if test="i_delete_state != null">
+			and m.i_delete_state=#{i_delete_state}
+		</if>
+		<if test="v_login_name != null">
+			and m.v_login_name=#{v_login_name}
+		</if>
+		<if test="v_login_password != null">
+			and m.v_login_password=#{v_login_password}
+		</if>
+ 		order by m.I_USER_ID desc
+ 	</select>
+ 
+ 
+	<insert id="insertuser"   parameterType="com.SzMIS.common.bean.T_USERS_INFO">
+		insert into T_USERS_INFO
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+ 				i_user_id,
+ 			<if test="v_login_name != null">
+				v_login_name,
+			</if>
+ 			<if test="v_login_password != null">
+				v_login_password,
+			</if>
+			<if test="v_real_name != null">
+				v_real_name,
+			</if>
+			<if test="v_user_tel != null">
+				v_user_tel,
+			</if>
+			<if test="v_user_email != null">
+				v_user_email,
+			</if>
+			<if test="insert_time != null">
+				insert_time,
+			</if>
+			<if test="i_add_user_id != null">
+				i_add_user_id,
+			</if>
+			<if test="last_login_time != null">
+				last_login_time,
+			</if>
+			<if test="i_user_state != null">
+				i_user_state,
+			</if>
+			<if test="i_login_tag != null">
+				i_login_tag,
+			</if>
+			<if test="i_login_count != null">
+				i_login_count,
+			</if>
+			<if test="i_admin_tag != null">
+				i_admin_tag,
+			</if>
+			<if test="modify_time != null">
+				modify_time,
+			</if>
+			<if test="i_subcomp_id != null">
+				i_subcomp_id,
+			</if>
+			<if test="i_country_id != null">
+				i_country_id,
+			</if>
+			<if test="v_user_no != null">
+				v_user_no,
+			</if>
+			<if test="i_zw_id != null">
+				i_zw_id,
+			</if>
+			<if test="i_department_id != null">
+				i_department_id,
+			</if>
+			<if test="i_position_id != null">
+				i_position_id,
+			</if>
+			<if test="v_duty_directioin != null">
+				v_duty_directioin,
+			</if>
+			<if test="dtm_birth != null">
+				dtm_birth,
+			</if>
+			<if test="v_marry_state != null">
+				v_marry_state,
+			</if>
+			<if test="v_card_type != null">
+				v_card_type,
+			</if>
+			<if test="v_card_no != null">
+				v_card_no,
+			</if>
+			<if test="v_py_short != null">
+				v_py_short,
+			</if>
+			<if test="i_sim_binding != null">
+				i_sim_binding,
+			</if>
+			<if test="i_is_gxh != null">
+				i_is_gxh,
+			</if>
+			<if test="i_usertype_id != null">
+				i_usertype_id,
+			</if>
+			<if test="i_wq != null">
+				i_wq,
+			</if>
+			<if test="i_delete_state != null">
+				i_delete_state,
+			</if>
+			<if test="i_enterprise_no != null">
+				i_enterprise_no,
+			</if>
+			<if test="v_subcomp_name != null">
+				v_subcomp_name,
+			</if>
+			<if test="v_login_imei != null">
+				v_login_imei,
+			</if>
+			<if test="is_area_manager != null">
+				is_area_manager,
+			</if>
+			<if test="aa != null">
+				aa,
+			</if>
+			<if test="v_company_name != null">
+				v_company_name,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			 
+				#{i_user_id},
+		  
+			<if test="v_login_name != null">
+				#{v_login_name},
+			</if>
+			<if test="v_login_password != null">
+				#{v_login_password},
+			</if>
+			<if test="v_real_name != null">
+				#{v_real_name},
+			</if>
+			<if test="v_user_tel != null">
+				#{v_user_tel},
+			</if>
+			<if test="v_user_email != null">
+				#{v_user_email},
+			</if>
+			<if test="insert_time != null">
+				#{insert_time},
+			</if>
+			<if test="i_add_user_id != null">
+				#{i_add_user_id},
+			</if>
+			<if test="last_login_time != null">
+				#{last_login_time},
+			</if>
+			<if test="i_user_state != null">
+				#{i_user_state},
+			</if>
+			<if test="i_login_tag != null">
+				#{i_login_tag},
+			</if>
+			<if test="i_login_count != null">
+				#{i_login_count},
+			</if>
+			<if test="i_admin_tag != null">
+				#{i_admin_tag},
+			</if>
+			<if test="modify_time != null">
+				#{modify_time},
+			</if>
+			<if test="i_subcomp_id != null">
+				#{i_subcomp_id},
+			</if>
+			<if test="i_country_id != null">
+				#{i_country_id},
+			</if>
+			<if test="v_user_no != null">
+				#{v_user_no},
+			</if>
+			<if test="i_zw_id != null">
+				#{i_zw_id},
+			</if>
+			<if test="i_department_id != null">
+				#{i_department_id},
+			</if>
+			<if test="i_position_id != null">
+				#{i_position_id},
+			</if>
+			<if test="v_duty_directioin != null">
+				#{v_duty_directioin},
+			</if>
+			<if test="dtm_birth != null">
+				#{dtm_birth},
+			</if>
+			<if test="v_marry_state != null">
+				#{v_marry_state},
+			</if>
+			<if test="v_card_type != null">
+				#{v_card_type},
+			</if>
+			<if test="v_card_no != null">
+				#{v_card_no},
+			</if>
+			<if test="v_py_short != null">
+				#{v_py_short},
+			</if>
+			<if test="i_sim_binding != null">
+				#{i_sim_binding},
+			</if>
+			<if test="i_is_gxh != null">
+				#{i_is_gxh},
+			</if>
+			<if test="i_usertype_id != null">
+				#{i_usertype_id},
+			</if>
+			<if test="i_wq != null">
+				#{i_wq},
+			</if>
+			<if test="i_delete_state != null">
+				#{i_delete_state},
+			</if>
+			<if test="i_enterprise_no != null">
+				#{i_enterprise_no},
+			</if>
+			<if test="v_subcomp_name != null">
+				#{v_subcomp_name},
+			</if>
+			<if test="v_login_imei != null">
+				#{v_login_imei},
+			</if>
+			<if test="is_area_manager != null">
+				#{is_area_manager},
+			</if>
+			<if test="aa != null">
+				#{aa},
+			</if>
+			 <if test="v_company_name != null">
+				#{v_company_name},
+			</if>
+		</trim>
+	</insert>
+
+
+<update id="Enable_disableuser"   parameterType="map">
+update T_USERS_INFO set
+  i_delete_state = #{i_delete_state}
+  where i_user_id=#{i_user_id}
+</update>
+
+<update id="updateusers"   parameterType="com.SzMIS.common.bean.T_USERS_INFO">
+    update T_USERS_INFO
+    <set>
+       <if test="v_login_name != null">
+        v_login_name = #{v_login_name},
+      </if>
+      <if test="v_login_password != null">
+        v_login_password = #{v_login_password},
+      </if>
+      <if test="v_real_name != null">
+        v_real_name = #{v_real_name},
+      </if>
+      <if test="v_user_tel != null">
+        v_user_tel = #{v_user_tel},
+      </if>
+      <if test="v_user_email != null">
+        v_user_email = #{v_user_email},
+      </if>
+      <if test="insert_time != null">
+        insert_time = #{insert_time},
+      </if>
+      <if test="i_add_user_id != null">
+        i_add_user_id = #{i_add_user_id},
+      </if>
+      <if test="last_login_time != null">
+        last_login_time = #{last_login_time},
+      </if>
+      <if test="i_user_state != null">
+        i_user_state = #{i_user_state},
+      </if>
+      <if test="i_login_tag != null">
+        i_login_tag = #{i_login_tag},
+      </if>
+      <if test="i_login_count != null">
+        i_login_count = #{i_login_count},
+      </if>
+      <if test="i_admin_tag != null">
+        i_admin_tag = #{i_admin_tag},
+      </if>
+      <if test="modify_time != null">
+        modify_time = #{modify_time},
+      </if>
+      <if test="i_subcomp_id != null">
+        i_subcomp_id = #{i_subcomp_id},
+      </if>
+      <if test="i_country_id != null">
+        i_country_id = #{i_country_id},
+      </if>
+      <if test="v_user_no != null">
+        v_user_no = #{v_user_no},
+      </if>
+      <if test="i_zw_id != null">
+        i_zw_id = #{i_zw_id},
+      </if>
+      <if test="i_department_id != null">
+        i_department_id = #{i_department_id},
+      </if>
+      <if test="i_position_id != null">
+        i_position_id = #{i_position_id},
+      </if>
+      <if test="v_duty_directioin != null">
+        v_duty_directioin = #{v_duty_directioin},
+      </if>
+      <if test="dtm_birth != null">
+        dtm_birth = #{dtm_birth},
+      </if>
+      <if test="v_marry_state != null">
+        v_marry_state = #{v_marry_state},
+      </if>
+      <if test="v_card_type != null">
+        v_card_type = #{v_card_type},
+      </if>
+      <if test="v_card_no != null">
+        v_card_no = #{v_card_no},
+      </if>
+      <if test="v_py_short != null">
+        v_py_short = #{v_py_short},
+      </if>
+      <if test="i_sim_binding != null">
+        i_sim_binding = #{i_sim_binding},
+      </if>
+      <if test="i_is_gxh != null">
+        i_is_gxh = #{i_is_gxh},
+      </if>
+      <if test="i_usertype_id != null">
+        i_usertype_id = #{i_usertype_id},
+      </if>
+      <if test="i_wq != null">
+        i_wq = #{i_wq},
+      </if>
+      <if test="i_delete_state != null">
+        i_delete_state = #{i_delete_state},
+      </if>
+      <if test="i_enterprise_no != null">
+        i_enterprise_no = #{i_enterprise_no},
+      </if>
+      <if test="v_subcomp_name != null">
+        v_subcomp_name = #{v_subcomp_name},
+      </if>
+      <if test="v_login_imei != null">
+        v_login_imei = #{v_login_imei},
+      </if>
+      <if test="is_area_manager != null">
+        is_area_manager = #{is_area_manager},
+      </if>
+      <if test="aa != null">
+        aa = #{aa},
+      </if>
+      	<if test="v_company_name != null">
+				v_company_name=#{v_company_name},
+    	</if>
+    	 
+    	
+    </set>
+  where i_user_id=#{i_user_id}
+  </update>
+  
+  <delete id="deleteusers" parameterType="map">
+    delete from T_USERS_INFO
+  where i_user_id=#{i_user_id}
+  </delete>
+  
+  
+</mapper>

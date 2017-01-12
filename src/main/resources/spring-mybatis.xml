@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	 xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans  
+                        http://www.springframework.org/schema/beans/spring-beans-3.1.xsd  
+                        http://www.springframework.org/schema/context  
+                        http://www.springframework.org/schema/context/spring-context-3.1.xsd  
+                        http://www.springframework.org/schema/mvc  
+                        http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
+                        http://www.springframework.org/schema/tx
+       					 http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+                        ">
+  
+  
+ 
+
+	<!-- 引入配置文件 -->
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="location" value="classpath:jdbc.properties" />
+	</bean>
+
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+		<property name="driverClassName" value="${driver}" />
+		<property name="url" value="${url}" />
+		<property name="username" value="${username}" />
+		<property name="password" value="${password}" />
+ 
+		 <!--maxActive: 最大连接数量-->    
+        <property name="maxActive" value="150"/>  
+        <!--minIdle: 最小空闲连接-->    
+        <property name="minIdle" value="5"/>  
+        <!--maxIdle: 最大空闲连接-->    
+        <property name="maxIdle" value="20"/>  
+        <!--initialSize: 初始化连接-->    
+        <property name="initialSize" value="30"/>  
+        <!-- 连接被泄露时是否打印 -->  
+        <property name="logAbandoned" value="true"/>  
+        <!--removeAbandoned: 是否自动回收超时连接-->    
+        <property name="removeAbandoned"  value="true"/>  
+        <!--removeAbandonedTimeout: 超时时间(以秒数为单位)-->    
+        <property name="removeAbandonedTimeout" value="10"/> 
+        <!--maxWait: 超时等待时间以毫秒为单位 1000等于60秒-->  
+        <property name="maxWait" value="1000"/>  
+        <!-- 在空闲连接回收器线程运行期间休眠的时间值,以毫秒为单位. -->  
+        <property name="timeBetweenEvictionRunsMillis" value="10000"/>  
+        <!--  在每次空闲连接回收器线程(如果有)运行时检查的连接数量 -->  
+        <property name="numTestsPerEvictionRun" value="10"/>  
+        <!-- 1000 * 60 * 30  连接在池中保持空闲而不被空闲连接回收器线程-->  
+        <property name="minEvictableIdleTimeMillis" value="10000"/>   
+        <property name="validationQuery" value="select 1"/>  
+	</bean>
+
+	<!-- spring和MyBatis完美整合，不需要mybatis的配置映射文件 -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		 <!-- 配置mybatis的日志记录 -->  
+		 <property name="configLocation" value="classpath:mybatis-config.xml"></property>
+		
+		<!-- 自动扫描mapping.xml文件 
+		<property name="mapperLocations" value="classpath:com/module/*/*/*Mapper.xml"></property>-->
+		<property name="mapperLocations" value="classpath:com/**/*Mapper.xml"></property>
+	</bean>
+	<bean id="sessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+	    <constructor-arg index="0" ref="sqlSessionFactory" />
+	</bean>
+	<!-- DAO接口所在包名，Spring会自动查找其下的类 -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.**.dao" />
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+	</bean>
+
+	<!-- (事务管理)transaction manager, use JtaTransactionManager for global tx -->
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<!-- 使用annotation定义事务 -->
+	<!-- 基于注释的事务，当注释中发现@Transactional时，使用id为“transactionManager”的事务管理器  -->
+    <!-- 如果没有设置transaction-manager的值，则spring以缺省默认的事务管理器来处理事务，默认事务管理器为第一个加载的事务管理器 -->
+	  <tx:annotation-driven transaction-manager="transactionManager" /> 
+ 
+
+</beans>

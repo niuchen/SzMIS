@@ -1,0 +1,476 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.SzMIS.sms.custom.dao.ISmsCustomDao">
+
+	<select id="getcitylist" parameterType="map"
+		resultType="com.SzMIS.common.lbtbean.Area">
+		SELECT * FROM Area where Area.UpArea=1967
+	</select>
+	
+<sql id="getlsyzlist_sql">
+	select  distinct       u.UsersID,u.Name,u.Phone,
+u.State,u.UserType,u.SchoolID,s.SchoolName,s.AreaID,s.SpCode   FROM Users u 
+LEFT JOIN Re_Users_Role rur ON rur.UsersID=u.UsersID
+LEFT JOIN School s ON s.SchoolID=u.SchoolID
+WHERE u.Phone!='' AND u.State=1
+     <if test="lyshenfen == 1"> <!--老师与园长-->
+      AND u.UserType=1 
+  </if>
+  <if test="lyshenfen == 2"><!-- 园长-->
+	   and rur.RoleID=1
+  </if>
+    <if test="lyshenfen == 3"><!--老师-->
+	   AND u.UserType=1  
+	   and rur.RoleID!=1
+  </if>
+  
+<if test="yeyfangshi==1"><!--幼儿园 全部  使用地区-->
+  <if test="county!=null and county!=''"><!--如果区县不是空. 那么就以区县为条件-->
+	 AND s.AreaID IN (${county})  
+  </if>
+   <if test="county==null or county==''"><!--如果区县是空-->
+	   <if test="city!=null and city!=''"><!--如果城市不是空 以城市为条件-->
+	      AND s.AreaID IN (SELECT a.AreaID  FROM  Area a WHERE a.UpArea IN (${city}))
+ 	  </if>
+  </if>
+</if>
+  
+   <if test="yeyfangshi==2"><!--幼儿园幼儿园自选-->
+	  AND s.SchoolID IN (${youeryuan_xz_id})  
+  </if>
+   <if test="yeyfangshi==3"><!--幼儿园幼儿园排除-->
+	  AND s.SchoolID not IN (${youeryuan_xz_id})  
+	   <if test="county!=null and county!=''"><!--如果区县不是空. 那么就以区县为条件-->
+	 AND s.AreaID IN (${county})  
+  </if>
+   <if test="county==null or county==''"><!--如果区县是空-->
+	   <if test="city!=null and city!=''"><!--如果城市不是空 以城市为条件-->
+	      AND s.AreaID IN (SELECT a.AreaID  FROM  Area a WHERE a.UpArea IN (${city}))
+ 	  </if>
+  </if>
+  </if>
+   
+  <if test="lyAPP==2"><!-- 安装app -->
+ 	    <if test="lylogin==1"><!--不限   查询安装APP的 至少登陆过1次-->
+	       AND  exists(
+				     SELECT UsersID from  (  select   MAX(l.LoginTime) maxLoginTime,  u.UsersID FROM Users u 
+								LEFT JOIN LoginLog l ON l.UserID=u.UsersID
+								 and  l.UserType=1 and l.PhoneModel is not null 
+								 GROUP BY   u.UsersID
+								 ) aa
+							 WHERE u.UsersID=aa.UsersID and aa.maxLoginTime IS NOT NULL 
+ 		  )
+	   </if>
+ 	   <if test="lylogin==2"><!--多少天登陆过-->
+		  AND  exists(
+		     SELECT UsersID from  (  select   MAX(l.LoginTime) maxLoginTime,  u.UsersID FROM Users u 
+						LEFT JOIN LoginLog l ON l.UserID=u.UsersID
+						and  l.UserType=1 and l.PhoneModel is not null  
+ 						 GROUP BY   u.UsersID
+						 ) aa
+					 WHERE u.UsersID=aa.UsersID and aa.maxLoginTime IS NOT NULL 
+ 					  and  aa.maxLoginTime>=(getdate()-#{lylogintext1})
+		 ) 
+	   </if>
+	     <if test="lylogin==3"><!--超过多少天没有登陆过-->
+		AND  exists(
+	     SELECT UsersID from  (  select   MAX(l.LoginTime) maxLoginTime,  u.UsersID FROM Users u 
+						LEFT JOIN LoginLog l ON l.UserID=u.UsersID
+						and  l.UserType=1 and l.PhoneModel is not null  
+ 						 GROUP BY   u.UsersID
+				 ) aa
+					 WHERE u.UsersID=aa.UsersID and aa.maxLoginTime IS not NULL 
+					   and  aa.maxLoginTime<![CDATA[ <]]>(getdate()-#{lylogintext2})
+		 )
+	   </if>
+ </if>
+ <if test="lyAPP==3"><!--没有安装APP的-->
+	 AND  exists(
+	     SELECT UsersID from  (  select   MAX(l.LoginTime) maxLoginTime,  u.UsersID FROM Users u 
+					LEFT JOIN LoginLog l ON l.UserID=u.UsersID
+					and   l.UserType=1 and l.PhoneModel is not null  
+					 GROUP BY   u.UsersID
+					 ) aa
+				 WHERE u.UsersID=aa.UsersID and aa.maxLoginTime IS  NULL 
+	 ) 
+ </if>
+
+ <if test="lyiszx==2"><!--  查询订购的老师 -->
+  AND  exists(
+     SELECT  distinct u.UsersID FROM Users u2 left JOIN OrdData o ON
+     o.UsersID=u.UsersID 
+       where o.OprCode='03' AND o.UserType=2 AND o.UsersID=u.UsersID
+  ) 
+ </if>
+  <if test="lyiszx==3"><!--  查询没有订购的老师 -->
+  AND not exists( 
+     SELECT  distinct u.UsersID FROM Users u2 left JOIN OrdData o ON
+     o.UsersID=u.UsersID 
+       where o.OprCode='03' AND o.UserType=2 AND o.UsersID=u.UsersID
+  ) 
+ </if>
+</sql>	
+	
+	<!-- 短信发送老师园长的筛选.  查出复合条件的老师园长 -->
+<select id="getlsyzlist" parameterType="com.SzMIS.sms.custom.pojo.Smssubmit"
+		resultType="com.SzMIS.sms.custom.pojo.Lsyzsms">
+        <include refid="getlsyzlist_sql" />
+ </select>
+
+  	<!-- 短信发送老师园长的筛选.  查出复合条件的老师园长 -->
+<select id="getlsyzlist_size" parameterType="com.SzMIS.sms.custom.pojo.Smssubmit"
+		resultType="Integer">
+          select count(1) from (  <include refid="getlsyzlist_sql" />
+          ) a
+ </select>
+ 
+ 
+ 	<!-- 短信发送家长的筛选.  查出复合条件的家长 -->
+<select id="getJzlist" parameterType="com.SzMIS.sms.custom.pojo.Smssubmit"
+		resultType="com.SzMIS.sms.custom.pojo.Jzsms">
+        <include refid="getjzyzlist_sql" />
+ </select>
+
+  	<!-- 短信发送家长的筛选.  查出复合条件的家长 -->
+<select id="getJzlist_size" parameterType="com.SzMIS.sms.custom.pojo.Smssubmit"
+		resultType="Integer">
+          select count(1) from (  <include refid="getjzyzlist_sql" />
+          ) a
+ </select>
+ <!-- 家长用户筛选 SQL-->
+<sql id="getjzyzlist_sql">
+	select  distinct       u.UsersID,u.Name,u.Phone,
+u.State,u.UserType,u.SchoolID,s.SchoolName,s.AreaID,s.SpCode     FROM Users u 
+LEFT JOIN Re_Users_Role rur ON rur.UsersID=u.UsersID
+LEFT JOIN School s ON s.SchoolID=u.SchoolID
+WHERE u.Phone!=''
+       AND u.UserType=2 <!-- 家长 -->
+        <if test="jzrzsc!=null and jzrzsc!=''">
+         and   u.AddTime<![CDATA[ <]]>getdate()-#{jzrzsc}
+        </if>
+        and u.AddTime<![CDATA[ >]]>getdate()-1460
+ <if test="yeyfangshi==1"><!--幼儿园 全部  使用地区-->
+  <if test="county!=null and county!=''"><!--如果区县不是空. 那么就以区县为条件-->
+	 AND s.AreaID IN (${county})  
+  </if>
+   <if test="county==null or county==''"><!--如果区县是空-->
+	   <if test="city!=null and city!=''"><!--如果城市不是空 以城市为条件-->
+	      AND s.AreaID IN (SELECT a.AreaID  FROM  Area a WHERE a.UpArea IN (${city}))
+ 	  </if>
+  </if>
+</if>
+  
+   <if test="yeyfangshi==2"><!--幼儿园幼儿园自选-->
+	  AND s.SchoolID IN (${youeryuan_xz_id})  
+  </if>
+   <if test="yeyfangshi==3"><!--幼儿园幼儿园排除-->
+	   <if test="county!=null and county!=''"><!--如果区县不是空. 那么就以区县为条件-->
+		 AND s.AreaID IN (${county})  
+	  </if>
+	   <if test="county==null or county==''"><!--如果区县是空-->
+		   <if test="city!=null and city!=''"><!--如果城市不是空 以城市为条件-->
+		      AND s.AreaID IN (SELECT a.AreaID  FROM  Area a WHERE a.UpArea IN (${city}))
+	 	  </if>
+	  </if>
+	  AND s.SchoolID not IN (${youeryuan_xz_id})    
+  </if>
+   
+  <if test="jzAPP==2"><!-- 安装app -->
+ 	    <if test="jzlogin==1"><!--不限   查询安装APP的 至少登陆过1次-->
+	       AND  exists(
+				     SELECT UsersID from  (  select   MAX(l.LoginTime) maxLoginTime,  u.UsersID FROM Users u 
+								LEFT JOIN LoginLog l ON l.UserID=u.UsersID
+								 and  l.UserType=2 and l.PhoneModel is not null 
+								 GROUP BY   u.UsersID
+								 ) aa
+							 WHERE u.UsersID=aa.UsersID and aa.maxLoginTime IS NOT NULL 
+ 		  )
+	   </if>
+ 	   <if test="jzlogin==2"><!--多少天登陆过-->
+		  AND  exists(
+		     SELECT UsersID from  (  select   MAX(l.LoginTime) maxLoginTime,  u.UsersID FROM Users u 
+						LEFT JOIN LoginLog l ON l.UserID=u.UsersID
+						and  l.UserType=2 and l.PhoneModel is not null  
+ 						 GROUP BY   u.UsersID
+						 ) aa
+					 WHERE u.UsersID=aa.UsersID and aa.maxLoginTime IS NOT NULL 
+ 					  and  aa.maxLoginTime>=(getdate()-#{jzlogintext1})
+		 ) 
+	   </if>
+	     <if test="jzlogin==3"><!--超过多少天没有登陆过-->
+		AND  exists(
+	     SELECT UsersID from  (  select   MAX(l.LoginTime) maxLoginTime,  u.UsersID FROM Users u 
+						LEFT JOIN LoginLog l ON l.UserID=u.UsersID
+						and  l.UserType=2 and l.PhoneModel is not null  
+ 						 GROUP BY   u.UsersID
+				 ) aa
+					 WHERE u.UsersID=aa.UsersID and aa.maxLoginTime IS not NULL 
+					   and  aa.maxLoginTime<![CDATA[ <]]>(getdate()-#{jzlogintext2})
+		 )
+	   </if>
+ </if>
+ <if test="jzAPP==3"><!--没有安装APP的-->
+	 AND  exists(
+	     SELECT UsersID from  (  select   MAX(l.LoginTime) maxLoginTime,  u.UsersID FROM Users u 
+					LEFT JOIN LoginLog l ON l.UserID=u.UsersID
+					and   l.UserType=2 and l.PhoneModel is not null  
+					 GROUP BY   u.UsersID
+					 ) aa
+				 WHERE u.UsersID=aa.UsersID and aa.maxLoginTime IS  NULL 
+	 ) 
+ </if>
+
+<!--  
+<if test="jziszx==1 and jzrtj!=1">订购 不限 第几联系人
+  AND  exists(
+     SELECT  distinct u.UsersID FROM Users u2 left JOIN OrdData o ON
+     o.UsersID=u.UsersID 
+       where   o.UsersID=u.UsersID 
+         <if test="jzrtj==2">   AND o.UserType=0  </if>
+         <if test="jzrtj==3">  AND o.UserType=1 </if>
+  ) 
+ </if>-->
+ <if test="jziszx==2"><!--  订购正常,没有离园 -->
+ and u.State =1  AND  exists(
+     SELECT  distinct u.UsersID FROM Users u2 left JOIN OrdData o ON
+     o.UsersID=u.UsersID and u2.State =1
+       where o.OprCode='03'   AND o.UsersID=u.UsersID 
+  ) 
+ </if>
+  <if test="jziszx==3"><!-- 订购正常,已经离园 -->
+  and u.State !=1 AND  exists( 
+     SELECT  distinct u.UsersID FROM Users u2 left JOIN OrdData o ON
+     o.UsersID=u.UsersID  and u2.State !=1
+       where o.OprCode='03'  AND o.UsersID=u.UsersID  	
+  ) 
+  </if>
+    <if test="jziszx==4"><!--  已经退订,已经离园 -->
+ and u.State !=1 AND  exists( 
+     SELECT  distinct u.UsersID FROM Users u2 left JOIN OrdData o ON
+     o.UsersID=u.UsersID and u2.State !=1 
+       where o.OprCode!='03' AND o.UsersID=u.UsersID 
+  ) 
+ </if>
+</sql>	
+ 
+<!-- 区县列表 -->
+	<select id="getcountylist" parameterType="map"
+		resultType="com.SzMIS.common.lbtbean.Area">
+		SELECT a1.AreaID,a1.UpArea,a1.Level,a1.sort,(select a3.AreaName from Area a3
+		where a3.AreaID=a1.UpArea)+a1.AreaName AreaName from Area a1
+		WHERE
+		exists(SELECT a2.areaid FROM Area a2 where a2.UpArea=1967 AND a1.UpArea =a2.AreaID)
+		AND a1.UpArea IN (${cityid})
+		ORDER by a1.UpArea,a1.AreaID asc
+	</select>
+<!-- 查询幼儿园数据 分页 -->
+	<select id="getSchoollist" parameterType="map"
+		resultType="com.SzMIS.common.lbtbean.School">
+		select top ${end} ar.AreaName ,ar2.AreaID upareaid ,ar2.AreaName
+		uparname ,ar2.UpArea upuparea,sc.*
+		FROM School sc
+		LEFT JOIN Area ar on ar.AreaID =sc.AreaID
+		LEFT JOIN Area ar2 ON ar2.AreaID=ar.UpArea
+		where schoolid not in
+		(
+		SELECT top ${start} sc.schoolid
+		FROM School sc LEFT JOIN Area ar on ar.AreaID =sc.AreaID
+		LEFT JOIN Area ar2 ON ar2.AreaID=ar.UpArea WHERE ar2.UpArea=1967
+		<if test="ALL != 1">
+			<if test="countyid != null">
+				and ar.AreaID in(${countyid})
+			</if>
+			<if test="cityid != null">
+				and ar2.AreaID in(${cityid})
+			</if>
+		</if>
+		<if test="name != null">
+			and sc.SchoolName like #{name,jdbcType=VARCHAR}
+		</if>
+		ORDER BY ar2.AreaID ,sc.AreaID,sc.SchoolID ASC
+		)
+		AND ar2.UpArea=1967
+		<if test="ALL != 1">
+			<if test="countyid != null">
+				and ar.AreaID in(${countyid})
+			</if>
+			<if test="cityid != null">
+				and ar2.AreaID in(${cityid})
+			</if>
+		</if>
+		<if test="name != null">
+			and sc.SchoolName like #{name,jdbcType=VARCHAR}
+		</if>
+		ORDER BY ar2.AreaID ,sc.AreaID,sc.SchoolID ASC
+	</select>
+<!-- 查询幼儿园数据总数 -->
+	<select id="getSchoolcount" parameterType="map" resultType="Integer">
+		SELECT count(1) FROM School sc
+		LEFT JOIN Area ar on ar.AreaID =sc.AreaID
+		LEFT JOIN Area ar2 ON ar2.AreaID=ar.UpArea
+		WHERE ar2.UpArea=1967
+		<if test="ALL != 1">
+			<if test="countyid != null">
+				and ar.AreaID in(${countyid})
+			</if>
+			<if test="cityid != null">
+				and ar2.AreaID in(${cityid})
+			</if>
+		</if>
+		<if test="name != null">
+			and sc.SchoolName like #{name,jdbcType=VARCHAR}
+		</if>
+	</select>
+	
+	<!-- 添加短信发送请求 -->
+	<insert id="smssubmit_insert" parameterType="com.SzMIS.sms.custom.pojo.Smssubmit">
+	INSERT INTO   SmsMisCustom 
+           (
+           smsid
+       <if test="city != null">    ,city</if>
+           <if test="county != null">  ,county</if>
+           <if test="yeyfangshi != null">  ,yeyfangshi</if>
+           <if test="youeryuan_xz_id != null">  ,youeryuan_xz_id</if>
+           <if test="lyrole != null">  ,lyrole</if>
+           <if test="lyshenfen != null">  ,lyshenfen</if>
+           <if test="lylogin != null">  ,lylogin</if>
+            <if test="lylogintext1 != null"> ,lylogintext1</if>
+            <if test="lylogintext2 != null"> ,lylogintext2</if>
+           <if test="lyAPP != null">  ,lyAPP</if>
+           <if test="lyiszx != null">  ,lyiszx</if>
+         <if test="jzrole != null">  ,jzrole</if>
+         <if test="jzrtj != null">  ,jzrtj</if>
+         <if test="jzywtj != null">  ,jzywtj</if>
+         <if test="jzlogin != null">  ,jzlogin</if>
+         <if test="jzlogintext1 != null">  ,jzlogintext1</if>
+         <if test="jzlogintext2 != null">  ,jzlogintext2</if>
+        <if test="jzAPP != null">   ,jzAPP</if>
+        <if test="jziszx != null">   ,jziszx</if>
+         <if test="jzrzsc != null">  ,jzrzsc</if>
+        <if test="smscontent != null">   ,smscontent</if>
+         <if test="tfhaoma != null">  ,tfhaoma</if>
+         <if test="fstype != null">  ,fstype</if>
+         <if test="lyissend != null">  ,lyissend</if>
+         <if test="jzissend != null">  ,jzissend</if>
+        <if test="lysendcount1 != null">   ,lysendcount1</if>
+         <if test="jzsendcount1 != null">  ,jzsendcount1</if>
+         <if test="lysendcount2 != null">  ,lysendcount2</if>
+         <if test="jzsendcount2 != null">  ,jzsendcount2</if>
+        <if test="lyExcmsg != null">   ,lyExcmsg</if>
+        <if test="jzExcmsg != null">   ,jzExcmsg</if>
+       <if test="insertdate != null">    ,insertdate</if>
+        <if test="updatedate != null">   ,updatedate</if>)
+     VALUES
+           (
+           #{smsid} 
+        <if test="city != null">   ,#{city}</if>
+        <if test="county != null">   ,#{county}</if>
+         <if test="yeyfangshi != null">  ,#{yeyfangshi}</if>
+        <if test="youeryuan_xz_id != null">   ,#{youeryuan_xz_id}</if>
+        <if test="lyrole != null">   ,#{lyrole}</if>
+        <if test="lyshenfen != null">   ,#{lyshenfen}</if>
+         <if test="lylogin != null">  ,#{lylogin}</if>
+        <if test="lylogintext1 != null">   ,#{lylogintext1}</if>
+        <if test="lylogintext2 != null">   ,#{lylogintext2}</if>
+       <if test="lyAPP != null">    ,#{lyAPP}</if>
+        <if test="lyiszx != null">   ,#{lyiszx}</if>
+        <if test="jzrole != null">   ,#{jzrole}</if>
+        <if test="jzrtj != null">   ,#{jzrtj}</if>
+         <if test="jzywtj != null">  ,#{jzywtj}</if>
+         <if test="jzlogin != null">  ,#{jzlogin}</if>
+        <if test="jzlogintext1 != null">   ,#{jzlogintext1}</if>
+        <if test="jzlogintext2 != null">   ,#{jzlogintext2}</if>
+        <if test="jzAPP != null">   ,#{jzAPP}</if>
+        <if test="jziszx != null">   ,#{jziszx}</if>
+         <if test="jzrzsc != null">  ,#{jzrzsc}</if>
+        <if test="smscontent != null">   ,#{smscontent}</if>
+        <if test="tfhaoma != null">   ,#{tfhaoma}</if>
+         <if test="fstype != null">  ,#{fstype}</if>
+         <if test="lyissend != null">  ,#{lyissend}</if>
+          <if test="jzissend != null"> ,#{jzissend}</if>
+         <if test="lysendcount1 != null">  ,#{lysendcount1}</if>
+         <if test="jzsendcount1 != null">  ,#{jzsendcount1}</if>
+          <if test="lysendcount2 != null"> ,#{lysendcount2}</if>
+        <if test="jzsendcount2 != null">   ,#{jzsendcount2}</if>
+         <if test="lyExcmsg != null">  ,#{lyExcmsg}</if>
+         <if test="jzExcmsg != null">  ,#{jzExcmsg}</if>
+         <if test="insertdate != null">  ,#{insertdate}</if>
+        <if test="updatedate != null">   ,#{updatedate}</if>)
+	
+	</insert>
+	
+	<insert id="Lsyzsms_insert" parameterType="com.SzMIS.sms.custom.pojo.Lsyzsms">
+	  INSERT INTO  SmsMisLsyzsms 
+           ( lid, usersid
+             <if test="name != null">,name</if>
+             <if test="phone != null">,phone</if>
+             <if test="state != null">,state</if>
+             <if test="usertype != null">,usertype</if>
+             <if test="schoolid != null">,schoolid</if>
+             <if test="schoolname != null">,schoolname</if>
+             <if test="areaid != null">,areaid</if>
+             <if test="areaname != null">,areaname</if>
+             <if test="insertdate != null">,insertdate</if>
+             <if test="smstext != null">,smstext</if>
+             <if test="smsid != null">,smsid</if>)
+     VALUES
+           ( #{lid}, #{usersid} 
+            <if test="name != null">   ,#{name}</if>
+            <if test="phone != null">   ,#{phone}</if>
+            <if test="state != null">   ,#{state}</if>
+            <if test="usertype != null">   ,#{usertype}</if>
+            <if test="schoolid != null">   ,#{schoolid}</if>
+            <if test="schoolname != null">   ,#{schoolname}</if>
+            <if test="areaid != null">   ,#{areaid}</if>
+            <if test="areaname != null">   ,#{areaname}</if>
+            <if test="insertdate != null">   ,#{insertdate}</if>
+            <if test="smstext != null">   ,#{smstext}</if>
+            <if test="smsid != null">   ,#{smsid}</if>)
+	</insert>
+	
+	<insert id="Jzsms_insert" parameterType="com.SzMIS.sms.custom.pojo.Jzsms">
+	  INSERT INTO  SmsMisJzsms
+           ( lid, usersid
+             <if test="name != null">,name</if>
+             <if test="phone != null">,phone</if>
+             <if test="state != null">,state</if>
+             <if test="usertype != null">,usertype</if>
+             <if test="schoolid != null">,schoolid</if>
+             <if test="schoolname != null">,schoolname</if>
+             <if test="areaid != null">,areaid</if>
+             <if test="areaname != null">,areaname</if>
+             <if test="insertdate != null">,insertdate</if>
+             <if test="smstext != null">,smstext</if>
+             <if test="smsid != null">,smsid</if>)
+     VALUES
+           ( #{lid}, #{usersid} 
+            <if test="name != null">   ,#{name}</if>
+            <if test="phone != null">   ,#{phone}</if>
+            <if test="state != null">   ,#{state}</if>
+            <if test="usertype != null">   ,#{usertype}</if>
+            <if test="schoolid != null">   ,#{schoolid}</if>
+            <if test="schoolname != null">   ,#{schoolname}</if>
+            <if test="areaid != null">   ,#{areaid}</if>
+            <if test="areaname != null">   ,#{areaname}</if>
+            <if test="insertdate != null">   ,#{insertdate}</if>
+            <if test="smstext != null">   ,#{smstext}</if>
+            <if test="smsid != null">   ,#{smsid}</if>)
+	</insert>
+  
+ 	 <select id="getsmssubmitlist" parameterType="map" resultType="com.SzMIS.sms.custom.pojo.Smssubmit">
+	select top ${end} *
+		FROM SmsMisCustom sc
+		where smsid not in
+		(
+		SELECT top ${start} smsid
+		FROM SmsMisCustom sc 
+		 ORDER BY sc.insertdate DESC
+ 		)
+		 ORDER BY sc.insertdate DESC
+ 	 </select>
+ 	 
+     <select id="getsmssubmitlist_count" parameterType="map" resultType="Integer">
+ 	 	  SELECT count(smsid) from  SmsMisCustom
+ 	 </select>
+</mapper>
